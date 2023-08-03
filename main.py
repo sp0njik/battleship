@@ -31,7 +31,7 @@ class Board:
         for i in range(self.__height):
             self.__map.append([])
             for j in range(self.__width):
-                marker = 'O'
+                marker = '\u2D54'
                 for ship in self.__ship_list:
                     if ship.is_own_point(i, j):
                         marker = '\u25fc'
@@ -39,9 +39,9 @@ class Board:
                 self.__map[i].append(marker)
 
     def draw(self):
-        map_str = '\t| ' + ' | '.join(map(str, range(self.__width))) + ' |\n'
+        map_str = '\t|\t' + '\t|\t'.join(map(str, range(self.__width))) + '\t|\n'
         for index, row in enumerate(self.__map):
-            map_str += str(index) + '\t| ' + ' | '.join(row) + ' |\n'
+            map_str += str(index) + '\t|\t' + '\t|\t'.join(row) + '\t|\n'
         return map_str
 
     def __get_next_point(self, direction, prev_x, prev_y):
