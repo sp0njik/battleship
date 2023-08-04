@@ -1,18 +1,19 @@
 from random import randint
+from abc import ABC, abstractmethod
 
 
 class Ship:
     def __init__(self, cords: list[tuple[int, int]]):
-        self.cords = cords
+        self.__cords = cords
 
     def is_intersect(self, new_x, new_y):
-        for x, y in self.cords:
+        for x, y in self.__cords:
             if abs(new_x - x) < 2 and abs(new_y - y) < 2:
                 return True
         return False
 
     def is_own_point(self, x, y):
-        return (x, y) in self.cords
+        return (x, y) in self.__cords
 
 
 class Board:
@@ -112,7 +113,46 @@ class Board:
 
         return ships_list
 
+    def check_point(self, x: int, y: int) -> str:
+        if self.__map[x][y] in ['X', 'T']:
+            raise ValueError('You already have been shot at this coords')
+        for ship in self.__ship_list:
+            if ship.is_own_point(x, y):
+                marker = 'X'
+                break
+        else:
+            marker = 'T'
+        self.__map[x][y] = marker
+        return marker
 
+    def set_marker(self, x: int, y: int, marker: str):
+        self.__map[x][y] = marker
+
+
+class Player:
+    def __init__(self, name: str, width: int, height: int, ships_type_dict: dict[int, int]):
+        self.name = name
+        self.__own_board = Board(width, height, ships_type_dict)
+        self.__opponent_board = Board(width, height, {})
+
+    def shoot(self):
+        while True:
+            try:
+                x, y = self.get_cords()
+                marker = self.__opponent.check_shoot(x, y)
+                break
+            except ValueError as error:
+                print(error)
+        self.__opponent_board.set_marker(x, y, marker)
+
+    def get_cords(self) -> tuple[int, int]:
+        pass
+
+    def set_opponent(self, opponent):
+        self.__opponent: Player = opponent
+
+    def check_shoot(self, x: int, y: int) -> str:
+        return self.__own_board.check_point(x, y)
 
 
 ship_types_dict = {3: 1, 2: 2, 1: 4}
@@ -127,4 +167,4 @@ while True:
 
 print(board.draw())
 # написать тест на проверку создание карты слишком маленькой
-#
+# написать класс игрока Player: def get_cords(), def check_points_on_the_board(), def shoot(), init 2 доски, 1-я с заполненым перечнем, 2-я заполненная
