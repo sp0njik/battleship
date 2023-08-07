@@ -155,16 +155,18 @@ class Player:
         return self.__own_board.check_point(x, y)
 
 
-ship_types_dict = {3: 1, 2: 2, 1: 4}
-while True:
-    width = int(input())
-    height = int(input())
-    try:
-        board = Board(width, height, ship_types_dict)
-        break
-    except ValueError as error:
-        print(error)
+if __name__ == '__main__':
 
-print(board.draw())
+    ship_types_dict = {3: 1, 2: 2, 1: 4}
+    while True:
+        width = int(input('Enter the width: '))
+        height = int(input('Enter the height: '))
+        try:
+            board = Board(width, height, ship_types_dict)
+            break
+        except ValueError as error:
+            print(error)
+
+    print(board.draw())
 # написать тест на проверку создание карты слишком маленькой
 # написать класс игрока Player: def get_cords(), def check_points_on_the_board(), def shoot(), init 2 доски, 1-я с заполненым перечнем, 2-я заполненная
