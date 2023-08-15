@@ -2,9 +2,39 @@ from random import randint
 from abc import ABC, abstractmethod
 
 
+class Point:
+    def __init__(self, x: int, y: int, marker: str):
+        self.__x = x
+        self.__y = y
+        self.__marker = marker
+
+    @property
+    def x(self):
+        return self.__x
+
+    @property
+    def y(self):
+        return self.__y
+
+    @property
+    def marker(self):
+        return self.__marker
+
+    @marker.setter
+    def marker(self, value: str):
+        if value not in ['T', 'X', '\u25fc']:
+            raise ValueError('wrong marker')
+        self.__marker = value
+
+    def __str__(self):
+        return self.__marker
+
+
 class Ship:
-    def __init__(self, cords: list[tuple[int, int]]):
+    def __init__(self, cords: list[Point]):
         self.__cords = cords
+        for cord in self.__cords:
+            cord.marker = '\u25fc'
 
     def is_intersect(self, new_x, new_y):
         for x, y in self.__cords:
@@ -13,7 +43,16 @@ class Ship:
         return False
 
     def is_own_point(self, x, y):
-        return (x, y) in self.__cords
+        for point in self.__cords:
+            if point.x == x and point.y == y:
+                return True
+        return False
+
+    def is_alive(self):
+        for point in self.__cords:
+            if point.marker == '\u25fc':
+                return True
+        return False
 
 
 class Board:
@@ -27,22 +66,27 @@ class Board:
         self.__ship_types_dict = ship_types_dict
         self.__width = width
         self.__height = height
-        self.__ship_list = self.__generate_ships()
-        self.__map = []
+        self.__map: list[list[Point]] = []
         for i in range(self.__height):
             self.__map.append([])
             for j in range(self.__width):
                 marker = '\u2D54'
-                for ship in self.__ship_list:
-                    if ship.is_own_point(i, j):
-                        marker = '\u25fc'
-                        break
-                self.__map[i].append(marker)
+                point = Point(i, j, marker)
+                self.__map[i].append(point)
+        self.__ship_list = self.__generate_ships()
+
+    @property
+    def width(self):
+        return self.__width
+
+    @property
+    def height(self):
+        return self.__height
 
     def draw(self):
-        map_str = '\t|\t' + '\t|\t'.join(map(str, range(self.__width))) + '\t|\n'
+        map_str = '\t|\t' + '\t|\t'.join(map(str, range(1, self.__width + 1))) + '\t|\n'
         for index, row in enumerate(self.__map):
-            map_str += str(index) + '\t|\t' + '\t|\t'.join(row) + '\t|\n'
+            map_str += str(index + 1) + '\t|\t' + '\t|\t'.join(row) + '\t|\n'
         return map_str
 
     def __get_next_point(self, direction, prev_x, prev_y):
@@ -72,6 +116,7 @@ class Board:
             ships_list.clear()
             for ship_type, count in self.__ship_types_dict.items():
                 for i in range(count):
+                    cords = []
                     is_found = False
                     attempts_count = 100
                     while not is_found:
@@ -85,7 +130,7 @@ class Board:
                             is_found = False
                             attempts_count -= 1
                             continue
-                        cords = [(x, y)]
+                        cords = [self.__map[x][y]]
                         is_found = True
                         for i in range(1, ship_type):
                             x, y = self.__get_next_point(direction, x, y)
@@ -94,7 +139,7 @@ class Board:
                                 attempts_count -= 1
                                 break
                             else:
-                                cords.append((x, y))
+                                cords.append(self.__map[x][y])
                                 is_found = True
                             # if not is_found:
                             #     continue
@@ -114,7 +159,7 @@ class Board:
         return ships_list
 
     def check_point(self, x: int, y: int) -> str:
-        if self.__map[x][y] in ['X', 'T']:
+        if self.__map[x][y].marker in ['X', 'T']:
             raise ValueError('You already have been shot at this coords')
         for ship in self.__ship_list:
             if ship.is_own_point(x, y):
@@ -122,51 +167,111 @@ class Board:
                 break
         else:
             marker = 'T'
-        self.__map[x][y] = marker
+        self.__map[x][y].marker = marker
         return marker
 
     def set_marker(self, x: int, y: int, marker: str):
-        self.__map[x][y] = marker
+        self.__map[x][y].marker = marker
+
+    def is_any_ships(self):
+        for ship in self.__ship_list:
+            if ship.is_alive():
+                return True
+        return False
 
 
-class Player:
+class Player(ABC):
     def __init__(self, name: str, width: int, height: int, ships_type_dict: dict[int, int]):
         self.name = name
-        self.__own_board = Board(width, height, ships_type_dict)
-        self.__opponent_board = Board(width, height, {})
+        self._own_board = Board(width, height, ships_type_dict)
+        self._opponent_board = Board(width, height, {})
+        self._opponent = None
 
     def shoot(self):
         while True:
             try:
                 x, y = self.get_cords()
-                marker = self.__opponent.check_shoot(x, y)
+                x -= 1
+                y -= 1
+                marker = self._opponent.check_shoot(x, y)
                 break
             except ValueError as error:
                 print(error)
-        self.__opponent_board.set_marker(x, y, marker)
+        self._opponent_board.set_marker(x, y, marker)
+        return marker
 
+    @abstractmethod
     def get_cords(self) -> tuple[int, int]:
         pass
 
     def set_opponent(self, opponent):
-        self.__opponent: Player = opponent
+        self._opponent: Player = opponent
 
     def check_shoot(self, x: int, y: int) -> str:
-        return self.__own_board.check_point(x, y)
+        return self._own_board.check_point(x, y)
+
+    def draw_boards(self):
+        boards_str = self._own_board.draw()
+        boards_str += '\n\n'
+        boards_str += self._opponent_board.draw()
+        return boards_str
+
+    def has_any_ships(self):
+        return self._own_board.is_any_ships()
+
+    def is_winner(self):
+        return not self._opponent.has_any_ships()
+
+
+class User(Player):
+    def get_cords(self) -> tuple[int, int]:
+        while True:
+            try:
+                x, y = list(map(int, input('Введите координаты через пробел: ').split()))
+                break
+            except TypeError:
+                print('Введены некорректные координаты, попробуйте снова')
+        return x, y
+
+
+class Ai(Player):
+    def get_cords(self) -> tuple[int, int]:
+        x = randint(1, self._own_board.width)
+        y = randint(1, self._own_board.height)
+        print(f'Координаты выстрела компьютера {x} {y}')
+        return x, y
 
 
 if __name__ == '__main__':
-
     ship_types_dict = {3: 1, 2: 2, 1: 4}
+    user = User('Artak', 6, 6, ship_types_dict)
+    ai = Ai('Computer', 6, 6, ship_types_dict)
+    user.set_opponent(ai)
+    ai.set_opponent(user)
+    active_player = user
     while True:
-        width = int(input('Enter the width: '))
-        height = int(input('Enter the height: '))
-        try:
-            board = Board(width, height, ship_types_dict)
+        print(f'Ход, {active_player.name}')
+        print(active_player.draw_boards())
+        shoot = active_player.shoot()
+        if not active_player.is_winner():
+            if shoot == 'T' and active_player is user:
+                active_player = ai
+            elif shoot == 'T' and active_player is ai:
+                active_player = user
+        else:
+            print(f'Победитель: {active_player.name}')
             break
-        except ValueError as error:
-            print(error)
+        print(f'Результат выстрела {active_player.name}')
+        print(active_player.draw_boards())
 
-    print(board.draw())
-# написать тест на проверку создание карты слишком маленькой
-# написать класс игрока Player: def get_cords(), def check_points_on_the_board(), def shoot(), init 2 доски, 1-я с заполненым перечнем, 2-я заполненная
+    # ship_types_dict = {3: 1, 2: 2, 1: 4}
+    # while True:
+    #     width = int(input('Enter the width: '))
+    #     height = int(input('Enter the height: '))
+    #     try:
+    #         board = Board(width, height, ship_types_dict)
+    #         break
+    #     except ValueError as error:
+    #         print(error)
+    #
+    # print(board.draw())
