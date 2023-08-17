@@ -22,7 +22,7 @@ class Point:
 
     @marker.setter
     def marker(self, value: str):
-        if value not in ['T', 'X', '\u25fc']:
+        if value not in ['T', 'X', '\u25fc', '\u2D54']:
             raise ValueError('wrong marker')
         self.__marker = value
 
@@ -37,8 +37,8 @@ class Ship:
             cord.marker = '\u25fc'
 
     def is_intersect(self, new_x, new_y):
-        for x, y in self.__cords:
-            if abs(new_x - x) < 2 and abs(new_y - y) < 2:
+        for point in self.__cords:
+            if abs(new_x - point.x) < 2 and abs(new_y - point.y) < 2:
                 return True
         return False
 
@@ -86,7 +86,7 @@ class Board:
     def draw(self):
         map_str = '\t|\t' + '\t|\t'.join(map(str, range(1, self.__width + 1))) + '\t|\n'
         for index, row in enumerate(self.__map):
-            map_str += str(index + 1) + '\t|\t' + '\t|\t'.join(row) + '\t|\n'
+            map_str += str(index + 1) + '\t|\t' + '\t|\t'.join([str(point) for point in row]) + '\t|\n'
         return map_str
 
     def __get_next_point(self, direction, prev_x, prev_y):
@@ -114,12 +114,13 @@ class Board:
         ship_doesnt_set = True
         while ship_doesnt_set:
             ships_list.clear()
+            self.clear()
             for ship_type, count in self.__ship_types_dict.items():
                 for i in range(count):
-                    cords = []
                     is_found = False
                     attempts_count = 100
                     while not is_found:
+                        cords = []
                         if attempts_count == 0:
                             ship_doesnt_set = True
                             break
@@ -178,6 +179,11 @@ class Board:
             if ship.is_alive():
                 return True
         return False
+
+    def clear(self):
+        for row in self.__map:
+            for point in row:
+                point.marker = '\u2D54'
 
 
 class Player(ABC):
